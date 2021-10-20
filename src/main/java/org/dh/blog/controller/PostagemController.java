@@ -1,71 +1,63 @@
 package org.dh.blog.controller;
 
-import org.dh.blog.exception.NaoEncontradoException;
 import org.dh.blog.model.Postagem;
 import org.dh.blog.repository.PostagemRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping(name = "/")
+@RequestMapping(name = "/postagens")
+@CrossOrigin("*")
 public class PostagemController{
 
 	@Autowired
-	private PostagemRepository postagemRepository;
-	
-	//pegar todas
+	private PostagemRepository repository;
+
 	@GetMapping
-	public List<Postagem> getPostagens(){
-		return this.postagemRepository.findAll();
+	public ResponseEntity<List<Postagem>> getAll(){
+		return ResponseEntity.ok(repository.findAll());
+	}
+
+	@GetMapping("/{id}")
+	public ResponseEntity<Postagem> getById(@PathVariable long id){
+		return repository.findById(id)
+			.map(resp -> ResponseEntity.ok(resp))
+			.orElse(ResponseEntity.notFound().build());
+	}
+
+	@GetMapping("/titulo/{titulo}")
+	public ResponseEntity<List<Postagem>> getByTitulo(@PathVariable String titulo){
+		return ResponseEntity.ok(
+			repository.findAllByTituloContainingIgnoreCase(titulo)
+		);
+	}
+
+	@GetMapping("/texto/{texto}")
+	public ResponseEntity<List<Postagem>> getByTexto(@PathVariable String texto){
+		return ResponseEntity.ok(
+			repository.findAllByTextoContainingIgnoreCase(texto)
+		);
 	}
 	
-	//pegar postagem
-	@GetMapping("/Postagem-{id}")
-	public Postagem getPostagemPorId(@PathVariable(value = "id") long postagemId){
-		return this.postagemRepository.findById(postagemId)
-				.orElseThrow(() -> new NaoEncontradoException("Erro 404 - Postagem não encontrada"));
-	}
-	
-	//criar postagem
 	@PostMapping
-	public Postagem novaPostagem(@RequestBody Postagem postagem) {
-		return this.postagemRepository.save(postagem);
+	public ResponseEntity<Postagem> post(@RequestBody Postagem postagem) {
+		return ResponseEntity.status(HttpStatus.CREATED)
+			.body(this.repository.save(postagem));
 	}
 	
-	//editar postagem
-	@PutMapping("/Postagem-{id}")
-	public Postagem editarPostagem(@RequestBody Postagem postagem, @PathVariable("id") long postagemId) {
-		Postagem postagemEncontrada = this.postagemRepository.findById(postagemId)
-				.orElseThrow(() -> new NaoEncontradoException("Erro 404 - Postagem não encontrada"));
-		postagemEncontrada.setTitulo(postagem.getTitulo());
-		postagemEncontrada.setTexto(postagem.getTexto());
-		postagemEncontrada.setDate(postagem.getDate());
-		return this.postagemRepository.save(postagemEncontrada);
+	@PutMapping
+	public ResponseEntity<Postagem> put (@RequestBody Postagem postagem){
+		return ResponseEntity.status(HttpStatus.OK)
+			.body(repository.save(postagem));
 	}
 	
-	//deletar postagem
-	@DeleteMapping("/Postagem-{id}")
-	public ResponseEntity<Postagem> deletarPostagem(@PathVariable ("id") long postagemId){
-		Postagem postagemEncontrada = this.postagemRepository.findById(postagemId)
-				.orElseThrow(() -> new NaoEncontradoException("Erro 404 - Postagem não encontrada"));
-		this.postagemRepository.delete(postagemEncontrada);
-		return ResponseEntity.ok().build();
-	}
-	
-	/*
-    @GetMapping
-    public String postagem(){
-        return "Works!";
+	@DeleteMapping("/{id}")
+	public void delete(@PathVariable Long id){
+        repository.deleteById(id);
     }
 
-    @PostMapping
-    @ResponseBody
-    public String postagens( @RequestParam String nome,
-                             @RequestParam String sobrenome){
-        return nome + " " + sobrenome;
-    }
-    */
 }
